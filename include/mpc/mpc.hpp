@@ -8,11 +8,13 @@
 #ifndef MPC_HPP_
 #define MPC_HPP_
 
-#include <symbolicc++.h>
-#include <nlopt.h>
-//#include <nlopt.hpp>
+
+//#include <nlopt.h>
 #include <Eigen/Dense>
 //#include <cmath>
+#include <nlopt.hpp>
+#include <symbolicc++.h>
+
 # define pi 3.14159265358979323846
 
 
@@ -35,27 +37,27 @@ public:
 	 ***  Class functions
 	 ****************************************************************/
 
-	//predictModelState(), getCost(), setModelState(), getModelState(), setControlHorizon(), getControlHorizon() itd.
-
 	MPC();
 
 	~MPC();
 
 	void setParameters(int Km, float K, float Tm, float Ts, float d, float alpha);
 
-	void setReference(Symbolic ref);
+	void setReference(matrix ref);
 
 	void setModel();
 
 	void setDiscreteModel();
 
-	void setModelState(Symbolic x);
+	void getSymbolicMatrices();
+
+	void setModelState(vector x);
 
 	void setHorizon(int Hw, int Hp, int Hu);
 
 	void setMatrixDimension();
 
-	void setControlMatrices(Symbolic Q, Symbolic R);
+	void setControlMatrices(matrix Q, matrix R);
 
 	void setInitialState(double *u);
 
@@ -63,7 +65,7 @@ public:
 
 	void setBounds(double *lb, double *ub);
 
-	void getTotalMatrices();
+	void getSymbolicState();
 
 	void getPredictModelState();
 
@@ -71,135 +73,133 @@ public:
 
 	void setMinObjective();
 
-	double myvfunc(unsigned dd, const double *u, double *grad, void *my_func_data);
+	double myfunc(const std::vector<double> &u, std::vector<double> &grad, void *my_func_data);
 
-	void substState(const double *u);
+	Symbolic substState(const double *u, Symbolic x_uk_pom);
 
-	void getPredictOutput();
+	void getPredictOutput(Symbolic x_uk_pom);
 
 	void getOutputWindow();
 
-	void substCost(const double *u);
+	void substCost();
 
 	void getControlWindow(const double *u);
 
 	double getCost();
 
-	Symbolic getControlValue(const double *u);
+	vector getControlValue(const double *u);
 
-	Symbolic getModelState(Symbolic u_real);
+	vector getModelState(vector u_real);
 
-	Symbolic getModelOutput(Symbolic x_real);
+	vector getModelOutput(vector x_real);
 
-
-	void test();
-
-	//void setModelState(vector state);
-	//void setModelState();
-
-	//double getCost();
-
-	//vector getModelState();
-
-	//void setControlHorizon(int value);
 
 	/*********************************************************************
 	 ***  Class variables
 	 ********************************************************************/
-	vector state_;
-
-	/*** Control horizon ***/
-	int control_horizon_;
-
 
 	/*** Parameters ***/
 	int Km_;
 	float K_, Tm_, Ts_, d_ , alpha_;
 
+	/*** Counters ***/
 	int i_, j_, n_, m_;
 
-	Symbolic ref_;
-	Symbolic A_c_, B_c_, I_;
-	Symbolic A_d_, B_d_, C_d_;
+	/*** Matrices ***/
+	matrix ref_;				//reference matrix
+	matrix A_c_, B_c_, I_;		//continuous model
+	matrix A_d_, B_d_, C_d_;	//discrete model
 
-	Symbolic x_;
+	/*** State vector ***/
+	vector x_;
+	Symbolic x_sym_;
 
+	/*** Horizon, control matrices ***/
 	int Hw_, Hp_, Hu_;
-	Symbolic Q_, R_;
+	matrix Q_, R_;
 
-	double u_[12];
+	/*** Control value ***/
 
+	std::vector<double> u_;
+	//double u_[12];
 	Symbolic u11_, u12_, u13_;
 	Symbolic u21_, u22_, u23_;
 	Symbolic u31_, u32_, u33_;
 	Symbolic u41_, u42_, u43_;
 	Symbolic ulaz_;
-	int vel_;
+	int vel_;					//number of columns
 
-	double lb_[12], ub_[12];
+	/*** Nlopt ***/
+	//double lb_[12], ub_[12];	//lower and upper_bounds
+	std::vector<double> lb_;
+	std::vector<double> ub_;
+    //nlopt_opt opt_;
+    double minf_;				//minimum
 
-    nlopt_opt opt_;
+	/*** Additional counters ***/
+    int k_, ii_, kk_, br_, km_;
 
-    double minf_;
+	/*** Total matrices ***/
+    matrix A_d_uk1_;			//A_d^i	,	i = 1, ... , Hp
+    matrix A_d_uk2_;			//sum(A_d^i)  ,  i = 0, ... , Hp -1
+    Symbolic A_d_sym_;		//A_d^i	,	i = 1, ... , Hp
+    Symbolic B_d_sym_;		//(sum(A_d^i))*B_d  ,  i = 0, ... , Hp -1
 
-    int k_, ii_, kk_, br_;
+	/*** State vector ***/
+    Symbolic xp_;				//predict state [4, 1]
+    Symbolic x_uk_;				//total predict matrix [4, Hp]
 
-    Symbolic A_d_uk1_;
-    Symbolic A_d_uk2_;
+	/*** Reference vector ***/
+    vector r_k_;				// dimensions:  [3*(Hp_-Hw_+1), 1]
 
-    Symbolic xp_;
-    Symbolic x_uk_;
+	/*** Nonlinear matrix ***/
+    matrix nelin_;				// dimensions:  [4, Hp_-Hw_+1]
 
-    //Symbolic r_p_;
-    Symbolic r_k_;
+	/*** Output vector ***/
+    vector zp_;					//predict vector; [3, 1]
+    vector z_k_;				//total predict vector; [3*(Hp_-Hw_+1), 1]
+    //vector z_;					//real predict vector [3, 1]
 
-    Symbolic nelin_;
-    Symbolic z_;
-    Symbolic z_k_;
+    vector pom1_, pom2_;
 
-    Symbolic pom1_, pom2_;
+	/*** Control value ***/
+    vector u_k_;				//total predict vector; [4*Hu, 1]
+    //vector u_real_;				//real predict vector [4, 1]
 
-    Symbolic u_k_;
+    int iter_;					//the number of iterations
 
-    int km_;
-    Symbolic V_;
-    double vv_;
-
-    //Symbolic u_real_ ;
-
-    int iter_;
-
+    nlopt::opt opt_;
 };
 
 
 
 MPC::MPC()
 {
-	////////////////////////////////////////
 
-	state_ = Eigen::VectorXd::Zero(5);
-	control_horizon_ = 5;
-	////////////////////////////////////////
-
-	i_ = 0, j_ = 0, n_ = 0, m_ = 0;
+	/*** Parameters ***/
 	Km_ = 0, K_ = 0, Tm_ = 0, Ts_ = 0, d_ = 0, alpha_ = 0;
 
-    A_c_ = Symbolic ("A_c_", 4, 4);
-    B_c_ = Symbolic("B_c_", 4, 4);
-    I_ = Symbolic("I_", 4, 4);
-    A_d_ = Symbolic ("A_d_", 4, 4);
-    B_d_ = Symbolic("B_d_", 4, 4);
-    C_d_ = Symbolic("C_d_", 3, 4);
+	/*** Counters ***/
+	i_ = 0, j_ = 0, n_ = 0, m_ = 0;
 
-    x_ = Symbolic("x_", 4, 1);
+	/*** Matrices ***/
+    A_c_ = Eigen::MatrixXd::Zero(4,4);
+    B_c_ = Eigen::MatrixXd::Zero(4,4);
+    I_ = Eigen::MatrixXd::Zero(4,4);
+    A_d_ = Eigen::MatrixXd::Zero(4,4);
+    B_d_ = Eigen::MatrixXd::Zero(4,4);
+    C_d_ = Eigen::MatrixXd::Zero(3,4);
 
+	/*** State vector ***/
+	x_ = Eigen::VectorXd::Zero(4);
+    x_sym_ = Symbolic ("x_sym_", 4, 1);
+
+	/*** Horizon ***/
 	Hw_ = 0, Hp_ = 0, Hu_ = 0;
 
-	//Q_ = Symbolic ("Q_", 3*(Hp_-Hw_+1), 3*(Hp_-Hw_+1));
-	//R_ = Symbolic ("R_", 4*Hu_, 4*Hu_);
-    //x_uk_ = Symbolic ("x_uk_", 4, Hp_);
+	/*** Control value ***/
 
-
+    u_ = std::vector<double> (12);
 	u11_ = Symbolic ("u11_"), u12_ = Symbolic ("u12_"), u13_ = Symbolic ("u13_");
 	u21_ = Symbolic ("u21_"), u22_ = Symbolic ("u22_"), u23_ = Symbolic ("u23_");
 	u31_ = Symbolic ("u31_"), u32_ = Symbolic ("u32_"), u33_ = Symbolic ("u33_");
@@ -210,18 +210,28 @@ MPC::MPC()
              (u41_, u42_, u43_));
     vel_ = ulaz_.columns();
 
+	/*** Nlopt ***/
+    lb_ = std::vector<double> (12);
+    ub_ = std::vector<double> (12);
+
     minf_ = 0;
-    k_ = 0, ii_ = 0, kk_ = 0, br_ = 0, km_ = 0, vv_ = 0;
 
+	/*** Additional counters ***/
+    k_ = 0, ii_ = 0, kk_ = 0, br_ = 0, km_ = 0;
 
+	/*** Total matrices ***/
+    A_d_sym_ = Symbolic ("A_d_uk1_sym_", 4, 4);
+    B_d_sym_ = Symbolic ("A_d_uk2_sym_", 4, 4);
+
+	/*** State vector ***/
     xp_ = Symbolic ("xp_", 4, 1);
 
-    //r_p_ = Symbolic ("r_p_", Hp_-Hw_+1, 3);
-    //r_k_ = Symbolic ("r_k_", 3*(Hp_-Hw_+1), 1);
+	/*** Output vector ***/
+	zp_ = Eigen::VectorXd::Zero(3);
+	//z_ = Eigen::VectorXd::Zero(3);
 
-    z_ = Symbolic ("z_", 3, 1);
-
-    //u_real_ = Symbolic ("u_real_", 4, 1);
+	/*** Control value ***/
+	//u_real_ = Eigen::VectorXd::Zero(4);
 
     iter_ = 1;
 
@@ -244,7 +254,7 @@ void MPC::setParameters(int Km, float K, float Tm, float Ts, float d, float alph
 
 }
 
-void MPC::setReference(Symbolic ref){
+void MPC::setReference(matrix ref){
 
 	ref_ = ref;
 
@@ -258,10 +268,6 @@ void MPC::setModel(){
                             A_c_(i_,j_) = -1/Tm_;
                             B_c_(i_,j_) = Km_/Tm_;
                             I_(i_,j_) = 1;
-                    }
-                    else {
-                            A_c_(i_,j_) = B_c_(i_,j_) = 0;
-                            I_(i_,j_) = 0;
                     }
             }
     }
@@ -281,7 +287,18 @@ void MPC::setDiscreteModel(){
 
 }
 
-void MPC::setModelState(Symbolic x){
+void MPC::getSymbolicMatrices(){
+
+
+	for (i_ = 0; i_ < 4; i_++ ){
+		for (j_ = 0; j_ < 4; j_++){
+			A_d_sym_(i_,j_) = A_d_(i_,j_);
+			B_d_sym_(i_,j_) = B_d_(i_,j_);
+		}
+	}
+}
+
+void MPC::setModelState(vector x){
 
 	x_ = x;
 
@@ -297,18 +314,18 @@ void MPC::setHorizon(int Hw, int Hp, int Hu){
 
 void MPC::setMatrixDimension(){
 
-	Q_ = Symbolic ("Q_", 3*(Hp_-Hw_+1), 3*(Hp_-Hw_+1));
-	R_ = Symbolic ("R_", 4*Hu_, 4*Hu_);
+    Q_ = Eigen::MatrixXd::Zero(3*(Hp_-Hw_+1), 3*(Hp_-Hw_+1));
+    R_ = Eigen::MatrixXd::Zero(4*Hu_, 4*Hu_);
 	x_uk_ = Symbolic ("x_uk_", 4, Hp_);
-    //r_p_ = Symbolic ("r_p_", Hp_-Hw_+1, 3);
-    r_k_ = Symbolic ("r_k_", 3*(Hp_-Hw_+1), 1);
-    nelin_ = Symbolic ("nelin_", 4, (Hp_-Hw_+1));
-    z_k_ = Symbolic ("z_k_", 3*(Hp_-Hw_+1), 1);
-    u_k_ = Symbolic ("u_k_", 4*Hu_, 1);
+	r_k_ = Eigen::VectorXd::Zero(3*(Hp_-Hw_+1));
+    nelin_ = Eigen::MatrixXd::Zero(4, Hp_-Hw_+1);
+	z_k_ = Eigen::VectorXd::Zero(3*(Hp_-Hw_+1));
+    u_k_ = Eigen::VectorXd::Zero(4*Hu_);
+
 
 }
 
-void MPC::setControlMatrices(Symbolic Q, Symbolic R){
+void MPC::setControlMatrices(matrix Q, matrix R){
 
 	Q_ = Q;
 	R_ = R;
@@ -325,10 +342,18 @@ void MPC::setInitialState(double *u){
 
 void MPC::setNlopt(){
 
+	/*
     opt_ = nlopt_create(NLOPT_LN_COBYLA, 12); // algorithm and dimensionality //
 
     nlopt_set_xtol_rel(opt_, 1e-3);
     nlopt_set_ftol_rel(opt_, 1e-3);
+	*/
+
+	opt_ = nlopt::opt(nlopt::LN_COBYLA, 12);			// algorithm and dimensionality //
+
+	opt_.set_xtol_rel(1e-3);
+	opt_.set_ftol_rel(1e-3);
+
 
 }
 
@@ -339,29 +364,30 @@ void MPC::setBounds(double *lb, double *ub){
 		ub_[i_] = *(ub + i_);
 	}
 
+	opt_.set_lower_bounds(lb_);
+	opt_.set_upper_bounds(ub_);
 
-    nlopt_set_lower_bounds(opt_, lb_);
-    nlopt_set_upper_bounds(opt_, ub_);
+    //nlopt_set_lower_bounds(opt_, lb_);
+    //nlopt_set_upper_bounds(opt_, ub_);
 
 
 }
 
-void MPC::getTotalMatrices(){
+void MPC::getSymbolicState(){
 
-    A_d_uk1_ = I_;
-    A_d_uk2_ = I_;
-    for (ii_ = 0; ii_ < i_+1; ii_++){
-            A_d_uk1_ = A_d_ * A_d_uk1_;
-            if(ii_ >= i_) break;
-            A_d_uk2_ = A_d_uk2_ + A_d_uk1_;
-    }
+	xp_(0) = x_(0);
+	xp_(1) = x_(1);
+	xp_(2) = x_(2);
+	xp_(3) = x_(3);
 
 
 }
 
 void MPC::getPredictModelState(){
 
-    xp_ = A_d_uk1_ * x_ + A_d_uk2_ * B_d_ * ulaz_.column(kk_);
+
+
+    xp_ = A_d_sym_ * xp_ + B_d_sym_ * ulaz_.column(kk_);
 
 	x_uk_(0,i_) = xp_(0);
 	x_uk_(1,i_) = xp_(1);
@@ -389,32 +415,34 @@ void MPC::setMinObjective(){
 }
 
 
-double MPC::myvfunc(unsigned dd, const double *u, double *grad, void *my_func_data){
+double MPC::myfunc(const std::vector<double> &u, std::vector<double> &grad, void *my_func_data){
 
-	double ret = 8.0;
-	return ret;
+
+	return 9.9;
 }
 
 
-void MPC::substState(const double *u){
+Symbolic MPC::substState(const double *u, Symbolic x_uk_pom){
 
-    x_uk_ = x_uk_.subst(u11_ == u[0*vel_+0]);
-    x_uk_ = x_uk_.subst(u12_ == u[0*vel_+1]);
-    x_uk_ = x_uk_.subst(u13_ == u[0*vel_+2]);
-    x_uk_ = x_uk_.subst(u21_ == u[1*vel_+0]);
-    x_uk_ = x_uk_.subst(u22_ == u[1*vel_+1]);
-    x_uk_ = x_uk_.subst(u23_ == u[1*vel_+2]);
-    x_uk_ = x_uk_.subst(u31_ == u[2*vel_+0]);
-    x_uk_ = x_uk_.subst(u32_ == u[2*vel_+1]);
-    x_uk_ = x_uk_.subst(u33_ == u[2*vel_+2]);
-    x_uk_ = x_uk_.subst(u41_ == u[3*vel_+0]);
-    x_uk_ = x_uk_.subst(u42_ == u[3*vel_+1]);
-	x_uk_ = x_uk_.subst(u43_ == u[3*vel_+2]);
+    x_uk_pom = x_uk_pom.subst(u11_ == u[0*vel_+0]);
+    x_uk_pom = x_uk_pom.subst(u12_ == u[0*vel_+1]);
+    x_uk_pom = x_uk_pom.subst(u13_ == u[0*vel_+2]);
+    x_uk_pom = x_uk_pom.subst(u21_ == u[1*vel_+0]);
+    x_uk_pom = x_uk_pom.subst(u22_ == u[1*vel_+1]);
+    x_uk_pom = x_uk_pom.subst(u23_ == u[1*vel_+2]);
+    x_uk_pom = x_uk_pom.subst(u31_ == u[2*vel_+0]);
+    x_uk_pom = x_uk_pom.subst(u32_ == u[2*vel_+1]);
+    x_uk_pom = x_uk_pom.subst(u33_ == u[2*vel_+2]);
+    x_uk_pom = x_uk_pom.subst(u41_ == u[3*vel_+0]);
+    x_uk_pom = x_uk_pom.subst(u42_ == u[3*vel_+1]);
+	x_uk_pom = x_uk_pom.subst(u43_ == u[3*vel_+2]);
+
+	return x_uk_pom;
 
 }
 
 
-void MPC::getPredictOutput(){
+void MPC::getPredictOutput(Symbolic x_uk_pom){
 
 	/*
 	for (m_ = 0; m_ < Hp_; m_++){
@@ -437,11 +465,11 @@ void MPC::getPredictOutput(){
 	for (m_ = Hw_; m_ <= Hp_; m_++){
 	    for (n_ = 0; n_ < 4; n_++){
 
-	    	nelin_(n_,m_-Hw_) = K_ * (abs((double)(x_uk_(n_,m_-1)))) * ((double)(x_uk_(n_,m_-1)));
+	    	nelin_(n_,m_-Hw_) = K_ * (abs((double)(x_uk_pom(n_,m_-1)))) * ((double)(x_uk_pom(n_,m_-1)));
 
 	    	}
 
-    	z_ = C_d_ * nelin_.column(m_-Hw_);
+    	zp_ = C_d_ * nelin_.col(m_-Hw_);
 
     	/*
     	z_uk_(0,m_-Hw_) = z_(0);
@@ -449,9 +477,9 @@ void MPC::getPredictOutput(){
     	z_uk_(2,m_-Hw_) = z_(2);
     	*/
 
-    	z_k_(br_,0) = z_(0);
-    	z_k_(br_+1,0) = z_(1);
-    	z_k_(br_+2,0) = z_(2);
+    	z_k_(br_,0) = zp_(0);
+    	z_k_(br_+1,0) = zp_(1);
+    	z_k_(br_+2,0) = zp_(2);
     	br_ = br_ + 3;
 	}
 
@@ -462,21 +490,9 @@ void MPC::getOutputWindow(){
 
 }
 
-void MPC::substCost(const double *u){
+void MPC::substCost(){
 
     pom1_ = ((z_k_.transpose())-(r_k_.transpose()))*Q_*(z_k_-r_k_);
-    pom1_ = pom1_.subst(u11_ == u[0*vel_+0]);
-    pom1_ = pom1_.subst(u12_ == u[0*vel_+1]);
-    pom1_ = pom1_.subst(u13_ == u[0*vel_+2]);
-    pom1_ = pom1_.subst(u21_ == u[1*vel_+0]);
-    pom1_ = pom1_.subst(u22_ == u[1*vel_+1]);
-    pom1_ = pom1_.subst(u23_ == u[1*vel_+2]);
-    pom1_ = pom1_.subst(u31_ == u[2*vel_+0]);
-    pom1_ = pom1_.subst(u32_ == u[2*vel_+1]);
-    pom1_ = pom1_.subst(u33_ == u[2*vel_+2]);
-    pom1_ = pom1_.subst(u41_ == u[3*vel_+0]);
-    pom1_ = pom1_.subst(u42_ == u[3*vel_+1]);
-	pom1_ = pom1_.subst(u43_ == u[3*vel_+2]);
 
 }
 
@@ -499,56 +515,48 @@ double MPC::getCost(){
 
     pom2_ = (u_k_.transpose())*R_*(u_k_);
 
-    return ((double)(pom1_+pom2_));
+    return ((double)(pom1_(0)+pom2_(0)));
 
 }
 
-Symbolic MPC::getControlValue(const double *u){
+Eigen::VectorXd MPC::getControlValue(const double *u){
 
-    Symbolic u_real_("u_real_", 4, 1);
+	vector u_real;
+	u_real = Eigen::VectorXd::Zero(4);
 
-    u_real_(0,0) = u[0*vel_+0];
-    u_real_(1,0) = u[1*vel_+0];
-    u_real_(2,0) = u[2*vel_+0];
-    u_real_(3,0) = u[3*vel_+0];
+    u_real(0) = u[0*vel_+0];
+    u_real(1) = u[1*vel_+0];
+    u_real(2) = u[2*vel_+0];
+    u_real(3) = u[3*vel_+0];
 
-    return u_real_;
+    return u_real;
 
 }
 
-Symbolic MPC::getModelState(Symbolic u_real){
+Eigen::VectorXd MPC::getModelState(vector u_real){
 
     x_ = A_d_ * x_ + B_d_ * u_real;
 
 	return x_;
 }
 
-Symbolic MPC::getModelOutput(Symbolic x_real){
-
-	Symbolic z_("z_", 3, 1);
+Eigen::VectorXd MPC::getModelOutput(vector x_real){
 
 	nelin_(0,0) = K_ * (abs((double)(x_real(0)))) * ((double)(x_real(0)));
 	nelin_(1,0) = K_ * (abs((double)(x_real(1)))) * ((double)(x_real(1)));
 	nelin_(2,0) = K_ * (abs((double)(x_real(2)))) * ((double)(x_real(2)));
 	nelin_(3,0) = K_ * (abs((double)(x_real(3)))) * ((double)(x_real(3)));
 
-	z_ = C_d_ * nelin_.column(0);
+	vector z_;
+	z_ = C_d_ * nelin_.col(0);
 
 	return z_;
 }
 
 
-void MPC::test(){
-
-	cout << "\n test \n";
-}
-
 ////////////////////////////////////////
-
-//void MPC::setModelState(vector state)
 
 
 ////////////////////////////////////////
 
 #endif /* MPC_HPP_ */
-

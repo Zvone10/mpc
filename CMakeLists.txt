@@ -18,6 +18,7 @@ find_package(Eigen REQUIRED)
 
 
 
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -104,7 +105,7 @@ find_package(Eigen REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+#  INCLUDE_DIRS include 
 #  LIBRARIES mpc
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
@@ -122,10 +123,17 @@ include_directories(
   ${Eigen_INCLUDE_DIRS}
 )
 
+#include_directories(Nlopt)
+#include_directories(Symbolic)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/opt/ros/indigo/include/ -I/home/zvone/workspace/nlopt/install/include -I/home/zvone/workspace/SymbolicC++3-3.35/headers -I/home/zvone/workspace/eigen-eigen-07105f7124f9  -O0 -g3 -Wall -c -fmessage-length=0")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O3 -Wall -c -fmessage-length=0")
+#set( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /home/zvone/catkin_ws/src/mpc/Nlopt/libnlopt.a" )
+
 ## Declare a C++ library
-# add_library(mpc
+#add_library(mpc
 #   src/${PROJECT_NAME}/mpc.cpp
-# )
+#)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
