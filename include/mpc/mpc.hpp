@@ -31,6 +31,8 @@ public:
 	typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix;
 	typedef Eigen::Matrix<double, Eigen::Dynamic, 1> vector;
 
+	enum {state_num = 12};
+
 
 
 	/*****************************************************************
@@ -199,7 +201,7 @@ MPC::MPC()
 
 	/*** Control value ***/
 
-    u_ = std::vector<double> (12);
+    u_ = std::vector<double> (state_num);
 	u11_ = Symbolic ("u11_"), u12_ = Symbolic ("u12_"), u13_ = Symbolic ("u13_");
 	u21_ = Symbolic ("u21_"), u22_ = Symbolic ("u22_"), u23_ = Symbolic ("u23_");
 	u31_ = Symbolic ("u31_"), u32_ = Symbolic ("u32_"), u33_ = Symbolic ("u33_");
@@ -211,8 +213,8 @@ MPC::MPC()
     vel_ = ulaz_.columns();
 
 	/*** Nlopt ***/
-    lb_ = std::vector<double> (12);
-    ub_ = std::vector<double> (12);
+    lb_ = std::vector<double> (state_num);
+    ub_ = std::vector<double> (state_num);
 
     minf_ = 0;
 
@@ -334,7 +336,7 @@ void MPC::setControlMatrices(matrix Q, matrix R){
 
 void MPC::setInitialState(double *u){
 
-	for (i_ = 0; i_ < 12 ; i_++) {
+	for (i_ = 0; i_ < state_num ; i_++) {
 		u_[i_] = *(u + i_);
 	}
 
@@ -349,7 +351,7 @@ void MPC::setNlopt(){
     nlopt_set_ftol_rel(opt_, 1e-3);
 	*/
 
-	opt_ = nlopt::opt(nlopt::LN_COBYLA, 12);			// algorithm and dimensionality //
+	opt_ = nlopt::opt(nlopt::LN_COBYLA, state_num);			// algorithm and dimensionality //
 
 	opt_.set_xtol_rel(1e-3);
 	opt_.set_ftol_rel(1e-3);
@@ -359,7 +361,7 @@ void MPC::setNlopt(){
 
 void MPC::setBounds(double *lb, double *ub){
 
-	for (i_ = 0; i_ < 12 ; i_++) {
+	for (i_ = 0; i_ < state_num ; i_++) {
 		lb_[i_] = *(lb + i_);
 		ub_[i_] = *(ub + i_);
 	}
@@ -416,9 +418,59 @@ void MPC::setMinObjective(){
 
 
 double MPC::myfunc(const std::vector<double> &u, std::vector<double> &grad, void *my_func_data){
+	//double myfunc(unsigned dd, const double *u, double *grad, void *my_func_data){
 
+		/********** Define x_uk_ matrix **********/
 
-	return 9.9;
+		Symbolic x_uk_pom;
+		//x_uk_pom = Symbolic ("x_uk_pom", 4, controller.Hp_);
+		x_uk_pom = x_uk_;
+
+		/********** Substitute control variable in state matrix **********/
+
+		x_uk_pom = substState(&u[0], x_uk_pom);
+
+		/*
+	    cout <<"Dimensions x_uk: "<< controller.x_uk_.rows() << " x " << controller.x_uk_.columns() << "\n";
+	    cout << "x_uk_pom = " << x_uk_pom << "\n";
+		*/
+
+		/********** Get predictive output (Hw to Hp) **********/
+
+		getPredictOutput(x_uk_pom);
+
+		/*
+	    cout <<"Dimensions nelin: "<< controller.nelin_.rows() << " x " << controller.nelin_.cols() << "\n";
+	    cout << "nelin = \n" << controller.nelin_ << "\n";
+
+	    cout <<"Dimensions zp: "<< controller.zp_.rows() << " x " << controller.zp_.cols() << "\n";
+	    cout << "zp = \n" << controller.zp_ << "\n";
+
+	    cout <<"Dimensions z_k: "<< controller.z_k_.rows() << " x " << controller.z_k_.cols() << "\n";
+	    cout << "z_k = \n" << controller.z_k_ << "\n";
+		*/
+
+		/********** Substitute control variable in cost **********/
+
+		substCost();
+
+		/********** Get control window **********/
+
+		getControlWindow(&u[0]);
+
+		/*
+	    cout <<"Dimensions u_k: "<< controller.u_k_.rows() << " x " << controller.u_k_.cols() << "\n";
+	    cout << "u_k = \n" << controller.u_k_ << "\n";
+		*/
+
+		/*****************************************/
+
+	    cout << "Iteracija br.: " << iter_ << "\n";
+	    iter_++;
+
+		/********** Get cost and return value **********/
+
+		return getCost();
 }
 
 
