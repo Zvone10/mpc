@@ -73,15 +73,11 @@ public:
 
 	void getReferenceWindow();
 
-	void setMinObjective();
-
 	double myfunc(const std::vector<double> &u, std::vector<double> &grad, void *my_func_data);
 
 	Symbolic substState(const double *u, Symbolic x_uk_pom);
 
 	void getPredictOutput(Symbolic x_uk_pom);
-
-	void getOutputWindow();
 
 	void substCost();
 
@@ -142,8 +138,6 @@ public:
     int k_, ii_, kk_, br_, km_;
 
 	/*** Total matrices ***/
-    matrix A_d_uk1_;			//A_d^i	,	i = 1, ... , Hp
-    matrix A_d_uk2_;			//sum(A_d^i)  ,  i = 0, ... , Hp -1
     Symbolic A_d_sym_;		//A_d^i	,	i = 1, ... , Hp
     Symbolic B_d_sym_;		//(sum(A_d^i))*B_d  ,  i = 0, ... , Hp -1
 
@@ -222,8 +216,8 @@ MPC::MPC()
     k_ = 0, ii_ = 0, kk_ = 0, br_ = 0, km_ = 0;
 
 	/*** Total matrices ***/
-    A_d_sym_ = Symbolic ("A_d_uk1_sym_", 4, 4);
-    B_d_sym_ = Symbolic ("A_d_uk2_sym_", 4, 4);
+    A_d_sym_ = Symbolic ("A_d_sym_", 4, 4);
+    B_d_sym_ = Symbolic ("A_d_sym_", 4, 4);
 
 	/*** State vector ***/
     xp_ = Symbolic ("xp_", 4, 1);
@@ -411,11 +405,6 @@ void MPC::getReferenceWindow(){
 
 }
 
-void MPC::setMinObjective(){
-
-
-}
-
 
 double MPC::myfunc(const std::vector<double> &u, std::vector<double> &grad, void *my_func_data){
 	//double myfunc(unsigned dd, const double *u, double *grad, void *my_func_data){
@@ -476,18 +465,9 @@ double MPC::myfunc(const std::vector<double> &u, std::vector<double> &grad, void
 
 Symbolic MPC::substState(const double *u, Symbolic x_uk_pom){
 
-    x_uk_pom = x_uk_pom.subst(u11_ == u[0*vel_+0]);
-    x_uk_pom = x_uk_pom.subst(u12_ == u[0*vel_+1]);
-    x_uk_pom = x_uk_pom.subst(u13_ == u[0*vel_+2]);
-    x_uk_pom = x_uk_pom.subst(u21_ == u[1*vel_+0]);
-    x_uk_pom = x_uk_pom.subst(u22_ == u[1*vel_+1]);
-    x_uk_pom = x_uk_pom.subst(u23_ == u[1*vel_+2]);
-    x_uk_pom = x_uk_pom.subst(u31_ == u[2*vel_+0]);
-    x_uk_pom = x_uk_pom.subst(u32_ == u[2*vel_+1]);
-    x_uk_pom = x_uk_pom.subst(u33_ == u[2*vel_+2]);
-    x_uk_pom = x_uk_pom.subst(u41_ == u[3*vel_+0]);
-    x_uk_pom = x_uk_pom.subst(u42_ == u[3*vel_+1]);
-	x_uk_pom = x_uk_pom.subst(u43_ == u[3*vel_+2]);
+	 Equations rules = (u11_ == u[0*vel_+0], u12_ == u[0*vel_+1], u13_ == u[0*vel_+2], u21_ == u[1*vel_+0], u22_ == u[1*vel_+1],u23_ == u[1*vel_+2], u31_ == u[2*vel_+0], u32_ == u[2*vel_+1],u33_ == u[2*vel_+2], u41_ == u[3*vel_+0], u42_ == u[3*vel_+1], u43_ == u[3*vel_+2]);
+
+	 x_uk_pom = x_uk_pom.subst_all(rules);
 
 	return x_uk_pom;
 
@@ -537,10 +517,6 @@ void MPC::getPredictOutput(Symbolic x_uk_pom){
 
 }
 
-void MPC::getOutputWindow(){
-
-
-}
 
 void MPC::substCost(){
 

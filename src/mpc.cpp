@@ -46,15 +46,16 @@ MPCNode::~MPCNode()
 
 void MPCNode::initialize()
 {
-	/*
-		ofstream myfile_u, myfile_ref, myfile_z;
-	    myfile_u.open ("u_plot.txt");
-	    myfile_z.open ("z_plot.txt");
-	    myfile_ref.open ("ref_plot.txt");
+		/*
+		ofstream myfile_u, myfile_ref, myfile_z, myfile_x;
+    	myfile_u.open ("u_plot.txt");
+    	myfile_z.open ("z_plot.txt");
+    	myfile_ref.open ("ref_plot.txt");
+    	myfile_x.open ("x_plot.txt");
 	    */
 
 	    int Km = 1000;
-	    float K = 1.1e-5, Tm = 50e-3, Ts = 0.1, d = 0.5, alpha = pi/4;
+	    float K = 1.13137e-5, Tm = 50e-3, Ts = 0.1, d = 0.5, alpha = pi/4;
 		int i = 0, j = 0;
 
 
@@ -112,10 +113,10 @@ void MPCNode::initialize()
 		vector x;
 		x = Eigen::VectorXd::Zero(4);
 
-		x(0) = 400;
-		x(1) = 400;
-		x(2) = -400;
-		x(3) = -400;
+		x(0) = 0;
+		x(1) = 0;
+		x(2) = 0;
+		x(3) = 0;
 
 
 		controller.setModelState(x);
@@ -176,8 +177,9 @@ void MPCNode::initialize()
 
 	    //double u[12] = {0};
 	    //double u[12] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1};
-	    double u[12] = {0.4, 0.4, 0.4, 0.4, 0.4, 0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4};
+	    //double u[12] = {0.4, 0.4, 0.4, 0.4, 0.4, 0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4};
 	    //double u[12] = {0.4, 0.4, 0.4, 0.1, 0.1, 0.1, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4};
+	    double u[12] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5};
 
 	    controller.setInitialState(&u[0]);
 
@@ -356,14 +358,7 @@ void MPCNode::step(matrix ref)
 
 
 	/********************************/
-    /*
-    myfile_u.close();
-    myfile_z.close();
-    myfile_ref.close();
-    */
 
-
-	cout << "\n!!STOP()!!\n";
 
 }
 
@@ -429,6 +424,15 @@ int main(int argc, char** argv)
 		ros::spinOnce();
 		rate.sleep();
 	}
+
+
+
+    /*
+    myfile_u.close();
+    myfile_z.close();
+    myfile_ref.close();
+    */
+
 	return 0;
 
 }
