@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  auv_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -16,7 +17,25 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen REQUIRED)
 
+#####DODANO########################################################
+find_path(symbolicc++_INCLUDE_DIR symbolicc++.h
+	PATH_SUFFIXES include
+	PATHS /usr/local /usr)
 
+find_library(symbolicc++_LIBRARY
+	symbolicc++
+	PATH_SUFFIXES lib64 lib
+	PATHS /usr/local /usr)
+
+find_path(nlopt_INCLUDE_DIR nlopt.h
+	PATH_SUFFIXES include
+	PATHS /usr/local /usr)
+
+find_library(nlopt_LIBRARY
+	nlopt
+	PATH_SUFFIXES lib64 lib
+	PATHS /usr/local /usr)
+###############################################################
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -109,6 +128,8 @@ catkin_package(
 #  LIBRARIES mpc
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+#  CFG_EXTRAS ${PROJECT_NAME}-extras.cmake
+
 )
 
 ###########
@@ -121,14 +142,25 @@ include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
+##DODANO#######################################
+${symbolicc++_INCLUDE_DIRS}
+${nlopt_INCLUDE_DIRS}
+##################################
 )
 
 #include_directories(Nlopt)
 #include_directories(Symbolic)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/opt/ros/indigo/include/ -I/home/zvone/workspace/nlopt/install/include -I/home/zvone/workspace/SymbolicC++3-3.35/headers -I/home/zvone/workspace/eigen-eigen-07105f7124f9  -O0 -g3 -Wall -c -fmessage-length=0")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/filip/ros/src/mpc/include -I/opt/ros/indigo/include/ -I/home/filip/workspace/nlopt/install/include -I/home/zvone/workspace/SymbolicC++3-3.35/headers -I/home/zvone/workspace/eigen-eigen-07105f7124f9  -O0 -g3 -Wall -c -fmessage-length=0")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O3 -Wall -c -fmessage-length=0")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O3 -Wall -c -fmessage-length=0")
+
 #set( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /home/zvone/catkin_ws/src/mpc/Nlopt/libnlopt.a" )
+
+
+######DODANO###########################################################
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-elide-constructors -I${CMAKE_CURRENT_SOURCE_DIR}/Symbolic/")
+#################################################################
+
 
 ## Declare a C++ library
 #add_library(mpc
@@ -143,19 +175,24 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include 
 ## Declare a C++ executable
 # add_executable(mpc_node src/mpc_node.cpp)
 add_executable(mpc_node src/mpc.cpp)
+add_executable(mpc_trajectory_node src/mpc_trajektorija.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(mpc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(mpc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(mpc_trajectory_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(mpc_node
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(mpc_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${nlopt_LIBRARY}
+)
+
+target_link_libraries(mpc_trajectory_node
+  ${catkin_LIBRARIES} ${nlopt_LIBRARY}
 )
 
 #############
