@@ -1,14 +1,12 @@
 #include <mpc/mpc_trajektorija.hpp>
 #include <ros/ros.h>
 #include <boost/bind.hpp>
-#include <fstream>
+//#include <fstream>
 #include<cmath>
 
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32MultiArray.h>
-
-ofstream myfile_ref, myfile_z, myfile_velocity, myfile_position, myfile_tau;
 
 
 class MPCNode
@@ -73,13 +71,14 @@ MPCNode::~MPCNode()
 
 void MPCNode::initialize()
 {
-
-		myfile_z.open ("z_plot.txt");
-		myfile_ref.open ("ref_plot.txt");
-		myfile_velocity.open ("velocity_plot.txt");
-		myfile_position.open ("position_plot.txt");
-		myfile_tau.open ("tau_plot.txt");
-
+		/*
+		ofstream myfile_ref, myfile_z, myfile_velocity, myfile_position, myfile_tau;
+    	myfile_z.open ("z_plot.txt");
+    	myfile_ref.open ("ref_plot.txt");
+    	myfile_velocity.open ("velocity_plot.txt");
+    	myfile_position.open ("position_plot.txt");
+    	myfile_tau.open ("tau_plot.txt");
+	    */
 
 	    int Km = 1000;
 	    float K = 1.13137e-5, Tm = 50e-3, Ts = 0.1, d = 0.5, alpha = pi/4;
@@ -466,18 +465,14 @@ void MPCNode::step(matrix ref)
      	}
 
 
-
      	//exit(4);
-
+     	/*
      	myfile_z << z_real.transpose() << " ;\n";
-     	//myfile_ref << ref.transpose().row(controller.k_ + controller.Hw_)<< " ;\n";
-     	myfile_ref << reference.block<1,kor>(0,0) << " ";
-     	myfile_ref << reference.block<1,kor>(1,0) << " ";
-     	myfile_ref << reference.block<1,kor>(2,0) << " ;\n";
+     	myfile_ref << ref.transpose().row(controller.k_ + controller.Hw_)<< " ;\n";
      	myfile_velocity << velocity_real.transpose() << " ;\n";
      	myfile_position << position_real.transpose() << " ;\n";
      	myfile_tau << tau_real.transpose() << " ;\n";
-
+*/
     //main
 
 
@@ -490,7 +485,7 @@ MPCNode::matrix MPCNode::get_reference()
 {
 	/********** Set reference **********/
 
-/*	int kor = 50;
+	int kor = 50;
 	int i = 0, j = 0;
     matrix ref;
     ref = Eigen::MatrixXd::Zero(3, kor);
@@ -511,7 +506,7 @@ MPCNode::matrix MPCNode::get_reference()
     }
 
     return ref;
-*/	  return reference;
+//	  return reference;
 }
 
 void MPCNode::onReference(const auv_msgs::NavSts::ConstPtr& data)
@@ -566,21 +561,17 @@ int main(int argc, char** argv)
 
 		mpc_node.controller.k_++;
 
-		if(mpc_node.controller.k_ == 46){
-			   myfile_z.close();
-			    myfile_ref.close();
-			    myfile_velocity.close();
-			    myfile_position.close();
-			    myfile_tau.close();
-			    cout << "\n SAVED \n";
-		}
 		ros::spinOnce();
 		rate.sleep();
 	}
 
-
-
-
+    /*
+    myfile_z.close();
+    myfile_ref.close();
+    myfile_velocity.close();
+    myfile_position.close();
+    myfile_tau.close();
+    */
 
 	return 0;
 

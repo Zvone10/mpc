@@ -27,7 +27,7 @@ find_library(symbolicc++_LIBRARY
 	PATH_SUFFIXES lib64 lib
 	PATHS /usr/local /usr)
 
-find_path(nlopt_INCLUDE_DIR nlopt.h
+find_path(nlopt_INCLUDE_DIR nlopt.hpp
 	PATH_SUFFIXES include
 	PATHS /usr/local /usr)
 
@@ -35,6 +35,7 @@ find_library(nlopt_LIBRARY
 	nlopt
 	PATH_SUFFIXES lib64 lib
 	PATHS /usr/local /usr)
+
 ###############################################################
 
 
@@ -152,11 +153,14 @@ ${nlopt_INCLUDE_DIRS}
 #include_directories(Symbolic)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/filip/ros/src/mpc/include -I/opt/ros/indigo/include/ -I/home/filip/workspace/nlopt/install/include -I/home/zvone/workspace/SymbolicC++3-3.35/headers -I/home/zvone/workspace/eigen-eigen-07105f7124f9  -O0 -g3 -Wall -c -fmessage-length=0")
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O3 -Wall -c -fmessage-length=0")
+#################set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O0 -g3 -Wall -c -fmessage-length=0")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O0 -g3 -Wall -o -fmessage-length=0")
 
-#set( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /home/zvone/catkin_ws/src/mpc/Nlopt/libnlopt.a" )
+#set(CMAKE_CXX_FLAGS "-c  /home/zvone/catkin_ws/src/mpc/Nlopt/libnlopt.a ")
 
+#################set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}  -Xlinker /home/zvone/catkin_ws/src/mpc/Nlopt/libnlopt.a -o ")
 
+#set( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -I/home/zvone/catkin_ws/src/mpc/include -I/home/zvone/catkin_ws/src/mpc/Nlopt -I/home/zvone/catkin_ws/src/mpc/Symbolic -O3 -Wall -o -fmessage-length=0" )
 ######DODANO###########################################################
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-elide-constructors -I${CMAKE_CURRENT_SOURCE_DIR}/Symbolic/")
 #################################################################
