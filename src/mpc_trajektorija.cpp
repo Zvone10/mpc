@@ -8,6 +8,7 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32MultiArray.h>
 
+
 ofstream myfile_ref, myfile_z, myfile_velocity, myfile_position, myfile_tau;
 
 
@@ -44,7 +45,7 @@ public:
 
 	ros::Subscriber sub_reference, sub_state;
 
-	ros::Publisher pub_tau_i, pub_tau;
+	ros::Publisher pub_tau_i, pub_tau, pub_vel, pub_pos;
 
 	matrix reference;
 
@@ -63,6 +64,8 @@ MPCNode::MPCNode():
 
 	pub_tau_i = nh.advertise<std_msgs::Float32MultiArray>("tau_i",1);
 	pub_tau = nh.advertise<auv_msgs::BodyForceReq>("tau",1);
+	pub_vel = nh.advertise<auv_msgs::NavSts>("velocity",1);
+	pub_pos = nh.advertise<auv_msgs::NavSts>("position" ,1);
 
 }
 
@@ -401,6 +404,7 @@ void MPCNode::step(matrix ref)
         //Binv = B.transpose()*(B*B.transpose()).inverse();
 
         //vector tau_1 = Binv*tau_real;
+        /*
         vector tau_1=(controller.C_d_*tau_real);
 
         auv_msgs::BodyForceReq tau_pub_1;
@@ -421,10 +425,18 @@ void MPCNode::step(matrix ref)
 
         pub_tau_i.publish(tau_pub);
         pub_tau.publish(tau_pub_1);
-
+	*/
         /// KRAJ //////////////////////////////////////////
 
 
+        std_msgs::Float32MultiArray tau_pub;
+
+        tau_pub.data.push_back(tau_real[0]);
+        tau_pub.data.push_back(tau_real[1]);
+        tau_pub.data.push_back(tau_real[2]);
+        tau_pub.data.push_back(tau_real[3]);
+
+        pub_tau_i.publish(tau_pub);
 
         /********** Get model output **********/
 
@@ -434,6 +446,17 @@ void MPCNode::step(matrix ref)
 
         cout << "z_real = \n" << z_real << "\n";
 
+        auv_msgs::BodyForceReq tau_pub_1;
+
+        tau_pub_1.header.stamp = ros::Time::now();
+        tau_pub_1.wrench.force.x = z_real[0];
+        tau_pub_1.wrench.force.y = z_real[1];
+        tau_pub_1.wrench.force.z = 0;
+  		tau_pub_1.wrench.torque.z = z_real[2];
+  		tau_pub_1.wrench.torque.x = 0;
+  		tau_pub_1.wrench.torque.y = 0;
+
+        pub_tau.publish(tau_pub_1);
 
         /********** Get real velocity **********/
 
@@ -443,6 +466,17 @@ void MPCNode::step(matrix ref)
 
         cout << "velocity = \n" << velocity_real << "\n";
 
+        auv_msgs::NavSts vel_pub;
+
+        vel_pub.header.stamp = ros::Time::now();
+        vel_pub.body_velocity.x = velocity_real[0];
+        vel_pub.body_velocity.y= velocity_real[1];
+  		vel_pub.body_velocity.z = 0;
+        vel_pub.orientation_rate.roll = 0;
+        vel_pub.orientation_rate.pitch = 0;
+        vel_pub.orientation_rate.yaw = velocity_real[2];
+
+        pub_vel.publish(vel_pub);
 
         /********** Get real position **********/
 
@@ -452,6 +486,17 @@ void MPCNode::step(matrix ref)
 
         cout << "position = \n" << position_real << "\n";
 
+        auv_msgs::NavSts pos_pub;
+
+        pos_pub.header.stamp = ros::Time::now();
+        pos_pub.position.north = position_real[0];
+        pos_pub.position.east = position_real[1];
+        pos_pub.position.depth = 0;
+   		pos_pub.orientation.roll = 0;
+   		pos_pub.orientation.pitch  = 0;
+   		pos_pub.orientation.yaw  = position_real[2];
+
+        pub_pos.publish(pos_pub);
 
         /********** Initial control value for next step **********/
 
@@ -513,14 +558,17 @@ MPCNode::matrix MPCNode::get_reference()
     return ref;
 */	  return reference;
 }
-
 void MPCNode::onReference(const auv_msgs::NavSts::ConstPtr& data)
 {
-
+/*
 	reference.block<1,kor>(0,0) = data->body_velocity.x*Eigen::MatrixXd::Ones(1, kor);
 	reference.block<1,kor>(1,0) = data->body_velocity.y*Eigen::MatrixXd::Ones(1, kor);
 	reference.block<1,kor>(2,0) = data->body_velocity.z*Eigen::MatrixXd::Ones(1, kor);
+*/
 
+	reference.block<1,kor>(0,0) = data->position.north*Eigen::MatrixXd::Ones(1, kor);
+	reference.block<1,kor>(1,0) = data->position.east*Eigen::MatrixXd::Ones(1, kor);
+	reference.block<1,kor>(2,0) = data->orientation.yaw*Eigen::MatrixXd::Ones(1, kor);
 
 }
 
