@@ -180,12 +180,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-elide-constructors -I${CMAKE_CURREN
 # add_executable(mpc_node src/mpc_node.cpp)
 add_executable(mpc_node src/mpc.cpp)
 add_executable(mpc_trajectory_node src/mpc_trajektorija.cpp)
+add_executable(relej_node src/relej.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(mpc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(mpc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(mpc_trajectory_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(relej_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(mpc_node
@@ -196,6 +198,10 @@ target_link_libraries(mpc_node
 )
 
 target_link_libraries(mpc_trajectory_node
+  ${catkin_LIBRARIES} ${nlopt_LIBRARY}
+)
+
+target_link_libraries(relej_node
   ${catkin_LIBRARIES} ${nlopt_LIBRARY}
 )
 

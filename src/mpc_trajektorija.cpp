@@ -51,6 +51,8 @@ public:
 
 	auv_msgs::NavSts state;
 
+	auv_msgs::BodyForceReq tau_out_;
+
 };
 
 MPCNode::MPCNode():
@@ -59,11 +61,11 @@ MPCNode::MPCNode():
 
 	ros::NodeHandle nh;
 
-	sub_state = nh.subscribe<auv_msgs::NavSts>("position",1,&MPCNode::onStateHat,this);
+	sub_state = nh.subscribe<auv_msgs::NavSts>("/cres/position",1,&MPCNode::onStateHat,this);
 	sub_reference = nh.subscribe<auv_msgs::NavSts>("stateRef",1,&MPCNode::onReference,this);
 
 	pub_tau_i = nh.advertise<std_msgs::Float32MultiArray>("tau_i",1);
-	pub_tau = nh.advertise<auv_msgs::BodyForceReq>("tau",1);
+	pub_tau = nh.advertise<auv_msgs::BodyForceReq>("/cres/tauOutSlow",1);
 	pub_vel = nh.advertise<auv_msgs::NavSts>("velocity",1);
 	pub_pos = nh.advertise<auv_msgs::NavSts>("position" ,1);
 
@@ -456,6 +458,8 @@ void MPCNode::step(matrix ref)
   		tau_pub_1.wrench.torque.x = 0;
   		tau_pub_1.wrench.torque.y = 0;
 
+  		//tau_out_ = tau_pub_1;
+
         pub_tau.publish(tau_pub_1);
 
         /********** Get real velocity **********/
@@ -574,7 +578,9 @@ void MPCNode::onReference(const auv_msgs::NavSts::ConstPtr& data)
 
 void MPCNode::onStateHat(const auv_msgs::NavSts::ConstPtr& data)
 {
+	//ROS_ERROR("DEBUG");
 	state = *data;
+	//pub_tau.publish(tau_out_);
 }
 
 /*********************************************************************
@@ -586,6 +592,8 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "mpc_node");
 	ros::NodeHandle nh;
 	MPCNode mpc_node;
+
+
 
 	/*** Time sample (in seconds) ***/
 	double Ts(1.0);
@@ -607,6 +615,8 @@ int main(int argc, char** argv)
     //for (controller.k_ = 0; controller.k_ < counter; mpc_node.controller.k_++){
 
 	//while (ros::ok() && mpc_node.controller.k_ < counter )
+
+    //ros::MultiThreadedSpinner spinner(2);
 	while (ros::ok())
 	{
 
@@ -623,6 +633,7 @@ int main(int argc, char** argv)
 			    cout << "\n SAVED \n";
 		}
 		ros::spinOnce();
+		//spinner.spinOnce();
 		rate.sleep();
 	}
 

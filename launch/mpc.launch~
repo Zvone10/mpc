@@ -1,0 +1,6 @@
+<launch>
+
+<node pkg="mpc" type="mpc_trajectory_node" name="mpc_trajectory_node" />
+<node pkg="mpc" type="relej_node" name="relej_node" />
+
+</launch>
