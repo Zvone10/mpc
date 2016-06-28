@@ -1,7 +1,7 @@
 #include <mpc/mpc_trajektorija.hpp>
 #include <ros/ros.h>
 #include <boost/bind.hpp>
-#include <fstream>
+//#include <fstream>
 #include<cmath>
 
 #include <auv_msgs/NavSts.h>
@@ -9,14 +9,14 @@
 #include <std_msgs/Float32MultiArray.h>
 
 
-ofstream myfile_ref, myfile_z, myfile_velocity, myfile_position, myfile_tau;
+//ofstream myfile_ref, myfile_z, myfile_velocity, myfile_position, myfile_tau;
 
 
 class MPCNode
 {
 public:
 
-	enum {kor = 50};
+	//enum {kor = 10};
 
 	typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix;
 	typedef Eigen::Matrix<double, Eigen::Dynamic, 1> vector;
@@ -43,7 +43,7 @@ public:
 
 	MPC controller;
 
-	ros::Subscriber sub_reference, sub_state;
+	ros::Subscriber sub_reference, sub_state, velocity_estimation, position_estimation;
 
 	ros::Publisher pub_tau_i, pub_tau, pub_vel, pub_pos;
 
@@ -53,10 +53,13 @@ public:
 
 	auv_msgs::BodyForceReq tau_out_;
 
+	matrix referent;
+
 };
 
-MPCNode::MPCNode():
-		reference(Eigen::MatrixXd::Zero(3, kor))
+MPCNode::MPCNode():reference(Eigen::MatrixXd::Zero(3, 1))
+
+
 {
 
 	ros::NodeHandle nh;
@@ -69,7 +72,11 @@ MPCNode::MPCNode():
 	pub_vel = nh.advertise<auv_msgs::NavSts>("velocity",1);
 	pub_pos = nh.advertise<auv_msgs::NavSts>("position" ,1);
 
+	referent = Eigen::MatrixXd::Zero(3, (4 + 1));
+
+
 }
+
 
 MPCNode::~MPCNode()
 {
@@ -78,13 +85,15 @@ MPCNode::~MPCNode()
 
 void MPCNode::initialize()
 {
-
+	    //referent(Eigen::MatrixXd::Zero(3, (controller.Hp_ + 1)));
+		//tau_k_ = Eigen::VectorXd::Zero(4*Hu_);
+		/*
 		myfile_z.open ("z_plot.txt");
 		myfile_ref.open ("ref_plot.txt");
 		myfile_velocity.open ("velocity_plot.txt");
 		myfile_position.open ("position_plot.txt");
 		myfile_tau.open ("tau_plot.txt");
-
+		*/
 
 	    int Km = 1000;
 	    float K = 1.13137e-5, Tm = 50e-3, Ts = 0.1, d = 0.5, alpha = pi/4;
@@ -255,13 +264,20 @@ void MPCNode::initialize()
 
 		double beta_uu, beta_vv, beta_rr , alpha_u, alpha_v, alpha_r;
 
+		beta_uu = 3.27;
+		beta_vv = 3.4;
+		beta_rr = 0.3;
+		alpha_u = 1.24;
+		alpha_v = 1.24;
+		alpha_r = 0.45;
+		/*
 		beta_uu = 1;
 		beta_vv = 1;
 		beta_rr = 1;
 		alpha_u = 1;
 		alpha_v = 1;
 		alpha_r = 1;
-
+	    */
 		controller.setVelocityParameters(beta_uu, beta_vv, beta_rr, alpha_u, alpha_v, alpha_r);
 
 		/********** Set Initial Velocity **********/
@@ -282,9 +298,16 @@ void MPCNode::initialize()
 		vector position;
 		position = Eigen::VectorXd::Zero(3);
 
+		/*
 		position(0) = 0;
 		position(1) = 0;
 		position(2) = 0;
+		*/
+
+		position(0) = state.position.north;
+		position(1) = state.position.east;
+		position(2) = state.orientation.yaw;
+
 
 		controller.setInitialPosition(position);
 
@@ -384,8 +407,8 @@ void MPCNode::step(matrix ref)
 
         /// OVDJE SE IZRACUNAVA X,Y,N ZA JASNIJI PRIKAZ
 
-        matrix B(Eigen::Matrix<double,3,4>::Zero());
-        matrix Binv(Eigen::Matrix<double,4,3>::Zero());
+        //matrix B(Eigen::Matrix<double,3,4>::Zero());
+        //matrix Binv(Eigen::Matrix<double,4,3>::Zero());
 
 
         /*
@@ -518,6 +541,7 @@ void MPCNode::step(matrix ref)
 
      	//exit(4);
 
+     	/*
      	myfile_z << z_real.transpose() << " ;\n";
      	//myfile_ref << ref.transpose().row(controller.k_ + controller.Hw_)<< " ;\n";
      	myfile_ref << reference.block<1,kor>(0,0) << " ";
@@ -526,6 +550,7 @@ void MPCNode::step(matrix ref)
      	myfile_velocity << velocity_real.transpose() << " ;\n";
      	myfile_position << position_real.transpose() << " ;\n";
      	myfile_tau << tau_real.transpose() << " ;\n";
+		*/
 
     //main
 
@@ -536,10 +561,11 @@ void MPCNode::step(matrix ref)
 }
 
 MPCNode::matrix MPCNode::get_reference()
+
 {
 	/********** Set reference **********/
-
-/*	int kor = 50;
+/*
+	int kor = 50;
 	int i = 0, j = 0;
     matrix ref;
     ref = Eigen::MatrixXd::Zero(3, kor);
@@ -553,27 +579,59 @@ MPCNode::matrix MPCNode::get_reference()
                     	//if (j < 24) ref(i,j) =  1 * sin(pi*j/1/kor);
                     	//else ref(i,j) = 1;
                     	//ref(i,j) = 1 * sin(pi*j/2/kor) + 0;           		//referent value
-                    	ref(i,j) = rr;
+                    	ref(i,j) = rr + reference(0,0);
                     	rr =  rr + ((6.5217e-3)*j);
                     }
             }
     }
-
+    cout << "\n\n REFERENCE = \n" << ref << "\n";
     return ref;
-*/	  return reference;
+*/
+
+	if(controller.k_ == 0)
+	{
+			for(int j = 0 ; j < (4 + 1); j++){
+				referent(0,j) = reference(0,0);
+				referent(1,j) = reference(1,0);
+				referent(2,j) = reference(2,0);
+			}
+	}
+
+	else{
+		for (int s = 0; s < (4 + 1); s++){
+ 			if(s < 4) {
+ 				referent(0,s) = referent(0,s+1);
+ 				referent(1,s) = referent(1,s+1);
+ 				referent(2,s) = referent(2,s+1);
+
+  			}
+ 			else{
+ 				referent(0,4) = reference(0,0);
+ 				referent(1,4) = reference(1,0);
+ 				referent(2,4) = reference(2,0);
+ 			}
+		}
+	}
+
+	cout << "\n\n REFERENCE = \n" << referent << "\n";
+	cout << "\n\n TIME = \n" << (ros::Time::now()) << "\n";
+
+	return referent;
+
+
+	//return reference;
 }
 void MPCNode::onReference(const auv_msgs::NavSts::ConstPtr& data)
 {
 /*
-	reference.block<1,kor>(0,0) = data->body_velocity.x*Eigen::MatrixXd::Ones(1, kor);
-	reference.block<1,kor>(1,0) = data->body_velocity.y*Eigen::MatrixXd::Ones(1, kor);
-	reference.block<1,kor>(2,0) = data->body_velocity.z*Eigen::MatrixXd::Ones(1, kor);
-*/
-
 	reference.block<1,kor>(0,0) = data->position.north*Eigen::MatrixXd::Ones(1, kor);
 	reference.block<1,kor>(1,0) = data->position.east*Eigen::MatrixXd::Ones(1, kor);
 	reference.block<1,kor>(2,0) = data->orientation.yaw*Eigen::MatrixXd::Ones(1, kor);
+*/
 
+	reference(0,0) = data->position.north;
+	reference(1,0) = data->position.east;
+	reference(2,0) = data->orientation.yaw;
 }
 
 void MPCNode::onStateHat(const auv_msgs::NavSts::ConstPtr& data)
@@ -603,11 +661,11 @@ int main(int argc, char** argv)
 
 
 	// PRIVREMENO RJESENJE
-    int counter;
+    //int counter;
     //int kor = 50; ///////// Ovo je privremeno!!!!!
     int Hp = mpc_node.controller.Hp_;
 
-    counter = MPCNode::kor - Hp;
+    //counter = MPCNode::kor - Hp;
 
     mpc_node.controller.k_ = 0;
 
@@ -623,7 +681,7 @@ int main(int argc, char** argv)
 		mpc_node.step(mpc_node.get_reference());
 
 		mpc_node.controller.k_++;
-
+		/*
 		if(mpc_node.controller.k_ == 46){
 			   myfile_z.close();
 			    myfile_ref.close();
@@ -632,6 +690,7 @@ int main(int argc, char** argv)
 			    myfile_tau.close();
 			    cout << "\n SAVED \n";
 		}
+		*/
 		ros::spinOnce();
 		//spinner.spinOnce();
 		rate.sleep();

@@ -408,7 +408,7 @@ void MPC::getReferenceWindow(){
 	br_ = 0;
     for (j_ = Hw_; j_ <= Hp_; j_++){
             for (i_ = 0; i_ < 3; i_++){
-                    r_k_(br_,0) = ref_(i_,j_+k_);
+                    r_k_(br_,0) = ref_(i_,j_); //umjesto k_ ide 1
                     br_++;
             }
     }
